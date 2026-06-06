@@ -1,5 +1,5 @@
 # Production Order Sequencing Manager
-### SAP Fiori UI Prototype — Frontend Only
+### SAP Fiori UI Prototype
 
 ---
 
