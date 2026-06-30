@@ -99,42 +99,6 @@ public class ProductionOrderServiceImpl implements ProductionOrderService {
     @Cacheable(value = "productionOrders", key = "#plant")
     public List<ProductionOrderDto> getOrdersByPlant(String plant) {
         List<ProductionOrder> orders = productionOrderRepo.findByPlantNative(plant);
-        if (orders.isEmpty()) {
-            // Self-seeding: automatically generate 50 default mock orders
-            List<ProductionOrder> seededOrders = new ArrayList<>();
-            String[] types = {"CBU", "KD", "TVL"};
-            String[] priorities = {"High", "Medium", "Low"};
-            String[] statuses = {"Pending", "In Progress", "Done"};
-
-            for (int i = 1; i <= 50; i++) {
-                String type = types[(i - 1) % types.length];
-                String priority = priorities[(i - 1) % priorities.length];
-                String status = statuses[(i - 1) % statuses.length];
-                String orderId = String.format("ORD-%s-%03d", plant, i);
-                
-                seededOrders.add(ProductionOrder.builder()
-                        .orderId(orderId)
-                        .type(type)
-                        .qty(10 + (i * 3) % 90)
-                        .priority(priority)
-                        .status(status)
-                        .material(type + "-MAT-" + (100 + i))
-                        .due("2026-07-" + String.format("%02d", (1 + (i % 28))))
-                        .plant(plant)
-                        .build());
-            }
-
-            orders = productionOrderRepo.saveAll(seededOrders);
-
-            activityLogService.logActivity(
-                    plant,
-                    "Self-seeded 50 default production orders for plant: " + plant,
-                    "Success",
-                    "Success",
-                    "System Initialization"
-            );
-        }
-
         return orders.stream()
                 .map(order -> modelMapper.map(order, ProductionOrderDto.class))
                 .collect(Collectors.toList());
