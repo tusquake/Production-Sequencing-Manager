@@ -106,6 +106,13 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Google Cloud SQL PostgreSQL -->
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>spring-cloud-gcp-starter-sql-postgresql</artifactId>
+            <version>5.2.0</version>
+        </dependency>
     </dependencies>
 
     <build>
