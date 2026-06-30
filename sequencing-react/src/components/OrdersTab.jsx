@@ -94,13 +94,19 @@ export default function OrdersTab({
     setValidationResult(null);
     try {
       const res = await onRunSimulation(selectedIds);
-      if (res && res.optimizedSequence) {
-        setOptimizedOrders(res.optimizedSequence);
-        setDraggedOrders(res.optimizedSequence); // Automatically load optimized to left panel
+      if (res && res.sequencedOrders) {
+        setOptimizedOrders(res.sequencedOrders);
+        setDraggedOrders(res.sequencedOrders); // Automatically load optimized to left panel
+        
+        const score = res.complianceVal !== undefined ? res.complianceVal : 100;
+        const status = score === 100 ? 'SUCCESS' : score >= 50 ? 'WARNING' : 'FAILED';
+        
         setValidationResult({
-          status: res.complianceScore === 100 ? 'SUCCESS' : 'WARNING',
-          score: res.complianceScore,
-          messages: res.validationDetails || ['Sequencing mixed successfully based on rules.']
+          status: status,
+          score: score,
+          messages: res.validationResults 
+            ? res.validationResults.map(r => `${r.name}: ${r.detail} (${r.pass ? 'Passed' : r.warn ? 'Warning' : 'Failed'})`)
+            : ['Sequencing mixed successfully based on rules.']
         });
       }
     } catch (err) {
@@ -122,10 +128,15 @@ export default function OrdersTab({
       const ids = draggedOrders.map(o => o.orderId);
       const res = await onValidateSequence(ids);
       if (res) {
+        const score = res.complianceVal !== undefined ? res.complianceVal : 100;
+        const status = score === 100 ? 'SUCCESS' : score >= 50 ? 'WARNING' : 'FAILED';
+        
         setValidationResult({
-          status: res.complianceScore === 100 ? 'SUCCESS' : res.complianceScore > 50 ? 'WARNING' : 'FAILED',
-          score: res.complianceScore,
-          messages: res.validationDetails || []
+          status: status,
+          score: score,
+          messages: res.validationResults 
+            ? res.validationResults.map(r => `${r.name}: ${r.detail} (${r.pass ? 'Passed' : r.warn ? 'Warning' : 'Failed'})`)
+            : []
         });
       }
     } catch (err) {
@@ -241,13 +252,7 @@ export default function OrdersTab({
               {isSimulating ? 'Running...' : 'Run Simulation'}
             </button>
 
-            {/* Create Order */}
-            <button
-              onClick={() => onSaveOrder()}
-              className="px-3 py-1.5 bg-fiori-primary hover:bg-fiori-primaryDark text-white rounded-md text-xs font-bold flex items-center transition-colors shadow-sm"
-            >
-              <Plus size={13} className="mr-1" /> Create Order
-            </button>
+
 
             {/* Clear Orders */}
             <button

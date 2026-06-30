@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 
 export default function App() {
-  const [plant, setPlant] = useState('MFG-001');
+  const [plant, setPlant] = useState('MFG-002');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(false);
 
@@ -188,7 +188,6 @@ export default function App() {
               value={plant}
               onChange={(e) => setPlant(e.target.value)}
             >
-              <option value="MFG-001">MFG-001 (Main Assembly)</option>
               <option value="MFG-002">MFG-002 (Engine Plant)</option>
               <option value="MFG-003">MFG-003 (Specialist Line)</option>
             </select>
@@ -257,9 +256,6 @@ export default function App() {
           </button>
         </nav>
 
-        <span className="text-[10px] text-fiori-textMuted font-mono bg-fiori-bgLight px-2.5 py-1 rounded-full border border-fiori-borderLight">
-          Operator: sreekar.vangara@incture.com
-        </span>
       </div>
 
       {/* Main Content Area */}
