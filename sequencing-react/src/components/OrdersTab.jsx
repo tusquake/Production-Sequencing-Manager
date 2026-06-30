@@ -3,7 +3,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useToast } from './Toast.jsx';
 import { 
   Play, CheckCircle, AlertCircle, Save, Plus, ArrowRight, Trash2,
-  RefreshCw, Search, ShieldCheck, ShieldAlert, RotateCcw
+  RefreshCw, Search, ShieldCheck, ShieldAlert, RotateCcw, ChevronDown, ChevronUp
 } from 'lucide-react';
 
 export default function OrdersTab({ 
@@ -38,6 +38,7 @@ export default function OrdersTab({
   // Stays true from the moment simulation/validation runs until user clicks Reset
   // or switches plant. Prevents the orders-sync effect from overwriting the result.
   const hasSimulated = useRef(false);
+  const [isOrderListCollapsed, setIsOrderListCollapsed] = useState(false);
 
   // Sync selectedIds → draggedOrders ONLY when no simulation has been run yet.
   // Once hasSimulated is true, the user's drag panel is owned by the simulation result
@@ -59,6 +60,7 @@ export default function OrdersTab({
     setDraggedOrders([]);
     setOptimizedOrders([]);
     setValidationResult(null);
+    setIsOrderListCollapsed(false);
   }, [plant]);
 
   // Handle filter changes
@@ -115,6 +117,7 @@ export default function OrdersTab({
         hasSimulated.current = true;
         setOptimizedOrders(res.sequencedOrders);
         setDraggedOrders(res.sequencedOrders);
+        setIsOrderListCollapsed(true);
 
         const score = res.complianceVal !== undefined ? res.complianceVal : 100;
         const status = score === 100 ? 'SUCCESS' : score >= 50 ? 'WARNING' : 'FAILED';
@@ -193,6 +196,7 @@ export default function OrdersTab({
     setDraggedOrders([]);
     setOptimizedOrders([]);
     setValidationResult(null);
+    setIsOrderListCollapsed(false);
   };
 
   const getPriorityColor = (prio) => {
@@ -215,169 +219,187 @@ export default function OrdersTab({
     <div className="space-y-6">
       {/* Top Section: Production Order List Table */}
       <div className="bg-white rounded-lg shadow-sm border border-fiori-borderLight p-5">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-fiori-borderLight pb-4 mb-4">
-          <div>
-            <h3 className="text-sm font-bold text-fiori-textDark">Production Order List</h3>
-            <p className="text-[10px] text-fiori-textMuted mt-0.5">Select orders to run line sequencing mixing rules</p>
-          </div>
-
-          {/* Filters & Actions Grid */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Search Input */}
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 text-fiori-textMuted" size={14} />
-              <input
-                type="text"
-                placeholder="Search PD ID..."
-                className="pl-8 pr-3 py-1.5 border border-fiori-borderLight rounded-md text-xs focus:outline-none focus:border-fiori-primary bg-white w-36"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-fiori-borderLight pb-4">
+          <div className="flex items-center space-x-2">
+            <div>
+              <h3 className="text-sm font-bold text-fiori-textDark flex items-center">
+                Production Order List
+                <button
+                  onClick={() => setIsOrderListCollapsed(!isOrderListCollapsed)}
+                  className="ml-2 p-1 text-fiori-textMuted hover:text-fiori-textDark hover:bg-fiori-bgLight rounded-md transition-colors"
+                  title={isOrderListCollapsed ? "Expand list" : "Collapse list"}
+                >
+                  {isOrderListCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                </button>
+              </h3>
+              <p className="text-[10px] text-fiori-textMuted mt-0.5">
+                {isOrderListCollapsed 
+                  ? `${filteredOrders.length} orders total (${selectedIds.length} selected for sequencing)`
+                  : "Select orders to run line sequencing mixing rules"
+                }
+              </p>
             </div>
-            
-            {/* Dropdown Filters */}
-            <select
-              className="px-2 py-1.5 border border-fiori-borderLight rounded-md text-xs bg-white focus:outline-none text-fiori-textDark font-medium"
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-            >
-              <option value="">Type...</option>
-              <option value="CBU">CBU</option>
-              <option value="KD">KD</option>
-              <option value="TVL">TVL</option>
-            </select>
-
-            <select
-              className="px-2 py-1.5 border border-fiori-borderLight rounded-md text-xs bg-white focus:outline-none text-fiori-textDark font-medium"
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
-            >
-              <option value="">Priority...</option>
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
-            </select>
-
-            <select
-              className="px-2 py-1.5 border border-fiori-borderLight rounded-md text-xs bg-white focus:outline-none text-fiori-textDark font-medium"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="">Status...</option>
-              <option value="Pending">Pending</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Done">Done</option>
-            </select>
-
-            {/* Run Simulation (Red Button) */}
-            <button
-              onClick={handleSimulation}
-              disabled={isSimulating || selectedIds.length === 0}
-              className="px-4 py-1.5 bg-[#E02424] hover:bg-[#C81E1E] disabled:opacity-40 text-white rounded-md text-xs font-bold flex items-center transition-colors shadow-sm"
-            >
-              <Play size={13} className="mr-1.5 fill-current" /> 
-              {isSimulating ? 'Running...' : 'Run Simulation'}
-            </button>
-
-
-
-            {/* Clear Orders */}
-            <button
-              onClick={() => onClearOrders(plant)}
-              className="px-3 py-1.5 border border-red-200 text-red-600 hover:bg-red-50 rounded-md text-xs font-bold flex items-center transition-colors"
-            >
-              <Trash2 size={13} className="mr-1" /> Clear
-            </button>
           </div>
+
+          {/* Action Row & Filters (Only show if not collapsed) */}
+          {!isOrderListCollapsed && (
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Search Input */}
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 text-fiori-textMuted" size={14} />
+                <input
+                  type="text"
+                  placeholder="Search PD ID..."
+                  className="pl-8 pr-3 py-1.5 border border-fiori-borderLight rounded-md text-xs focus:outline-none focus:border-fiori-primary bg-white w-36"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              
+              {/* Dropdown Filters */}
+              <select
+                className="px-2 py-1.5 border border-fiori-borderLight rounded-md text-xs bg-white focus:outline-none text-fiori-textDark font-medium"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+              >
+                <option value="">Type...</option>
+                <option value="CBU">CBU</option>
+                <option value="KD">KD</option>
+                <option value="TVL">TVL</option>
+              </select>
+
+              <select
+                className="px-2 py-1.5 border border-fiori-borderLight rounded-md text-xs bg-white focus:outline-none text-fiori-textDark font-medium"
+                value={priorityFilter}
+                onChange={(e) => setPriorityFilter(e.target.value)}
+              >
+                <option value="">Priority...</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+
+              <select
+                className="px-2 py-1.5 border border-fiori-borderLight rounded-md text-xs bg-white focus:outline-none text-fiori-textDark font-medium"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="">Status...</option>
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Done">Done</option>
+              </select>
+
+              {/* Run Simulation (Red Button) */}
+              <button
+                onClick={handleSimulation}
+                disabled={isSimulating || selectedIds.length === 0}
+                className="px-4 py-1.5 bg-[#E02424] hover:bg-[#C81E1E] disabled:opacity-40 text-white rounded-md text-xs font-bold flex items-center transition-colors shadow-sm"
+              >
+                <Play size={13} className="mr-1.5 fill-current" /> 
+                {isSimulating ? 'Running...' : 'Run Simulation'}
+              </button>
+
+              {/* Clear Orders */}
+              <button
+                onClick={() => onClearOrders(plant)}
+                className="px-3 py-1.5 border border-red-200 text-red-600 hover:bg-red-50 rounded-md text-xs font-bold flex items-center transition-colors"
+              >
+                <Trash2 size={13} className="mr-1" /> Clear
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Table Container */}
-        <div className="overflow-x-auto border border-fiori-borderLight rounded-md">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-fiori-bgLight border-b border-fiori-borderLight text-fiori-textDark font-bold">
-                <th className="p-3 w-10 text-center">
-                  <input 
-                    type="checkbox"
-                    checked={filteredOrders.length > 0 && selectedIds.length === filteredOrders.length}
-                    onChange={handleSelectAll}
-                    className="rounded text-fiori-primary focus:ring-fiori-primary cursor-pointer w-4 h-4"
-                  />
-                </th>
-                <th className="p-3">Order ID</th>
-                <th className="p-3">Sales Order</th>
-                <th className="p-3">Work Center</th>
-                <th className="p-3">Order Date</th>
-                <th className="p-3">Order Type</th>
-                <th className="p-3">Quantity</th>
-                <th className="p-3">Priority</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Material</th>
-                <th className="p-3">Due Date</th>
-                <th className="p-3 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredOrders.length === 0 ? (
-                <tr>
-                  <td colSpan="12" className="text-center p-8 text-fiori-textMuted font-medium">
-                    No production orders found in this workspace. Clear/re-import or create one.
-                  </td>
+        {/* Table Container (Only show if not collapsed) */}
+        {!isOrderListCollapsed && (
+          <div className="overflow-x-auto border border-fiori-borderLight rounded-md mt-4">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-fiori-bgLight border-b border-fiori-borderLight text-fiori-textDark font-bold">
+                  <th className="p-3 w-10 text-center">
+                    <input 
+                      type="checkbox"
+                      checked={filteredOrders.length > 0 && selectedIds.length === filteredOrders.length}
+                      onChange={handleSelectAll}
+                      className="rounded text-fiori-primary focus:ring-fiori-primary cursor-pointer w-4 h-4"
+                    />
+                  </th>
+                  <th className="p-3">Order ID</th>
+                  <th className="p-3">Sales Order</th>
+                  <th className="p-3">Work Center</th>
+                  <th className="p-3">Order Date</th>
+                  <th className="p-3">Order Type</th>
+                  <th className="p-3">Quantity</th>
+                  <th className="p-3">Priority</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">Material</th>
+                  <th className="p-3">Due Date</th>
+                  <th className="p-3 text-center">Actions</th>
                 </tr>
-              ) : (
-                filteredOrders.map((order) => {
-                  const isChecked = selectedIds.includes(order.orderId);
-                  const typeStyles = getTypeStyle(order.type);
-                  return (
-                    <tr 
-                      key={order.id} 
-                      className={`border-b border-fiori-borderLight transition-all cursor-pointer ${
-                        isChecked 
-                          ? 'bg-[#FFF5F5] hover:bg-[#FFEBEB]' 
-                          : 'hover:bg-fiori-bgLight/25 bg-white'
-                      }`}
-                      onClick={() => handleSelectOrder(order.orderId)}
-                    >
-                      <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                        <input 
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => handleSelectOrder(order.orderId)}
-                          className="rounded text-fiori-primary focus:ring-fiori-primary cursor-pointer w-4 h-4"
-                        />
-                      </td>
-                      <td className="p-3 font-bold text-fiori-textDark">{order.orderId}</td>
-                      <td className="p-3 font-semibold text-fiori-textDark">{order.salesOrder || 'SO-392010'}</td>
-                      <td className="p-3 text-fiori-textDark font-medium">{order.workCenter || 'WC-ENG-02'}</td>
-                      <td className="p-3 text-fiori-textMuted font-medium">{order.orderDate || '2026-06-25'}</td>
-                      <td className="p-3">
-                        <span className={`font-bold ${typeStyles.text}`}>{order.type}</span>
-                      </td>
-                      <td className="p-3 font-semibold text-fiori-textDark">{order.qty || 10}</td>
-                      <td className="p-3">
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded-sm border uppercase font-bold ${getPriorityColor(order.priority)}`}>
-                          {order.priority}
-                        </span>
-                      </td>
-                      <td className="p-3 font-medium text-fiori-textDark">{order.status}</td>
-                      <td className="p-3 text-fiori-textMuted font-medium font-mono">{order.material}</td>
-                      <td className="p-3 text-fiori-textMuted font-medium">{order.due || '2026-07-01'}</td>
-                      <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                        <button 
-                          onClick={() => onDeleteOrder(order.id)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-full transition-colors"
-                          title="Delete Order"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filteredOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan="12" className="text-center p-8 text-fiori-textMuted font-medium">
+                      No production orders found in this workspace. Clear/re-import or create one.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredOrders.map((order) => {
+                    const isChecked = selectedIds.includes(order.orderId);
+                    const typeStyles = getTypeStyle(order.type);
+                    return (
+                      <tr 
+                        key={order.id} 
+                        className={`border-b border-fiori-borderLight transition-all cursor-pointer ${
+                          isChecked 
+                            ? 'bg-[#FFF5F5] hover:bg-[#FFEBEB]' 
+                            : 'hover:bg-fiori-bgLight/25 bg-white'
+                        }`}
+                        onClick={() => handleSelectOrder(order.orderId)}
+                      >
+                        <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <input 
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => handleSelectOrder(order.orderId)}
+                            className="rounded text-fiori-primary focus:ring-fiori-primary cursor-pointer w-4 h-4"
+                          />
+                        </td>
+                        <td className="p-3 font-bold text-fiori-textDark">{order.orderId}</td>
+                        <td className="p-3 font-semibold text-fiori-textDark">{order.salesOrder || 'SO-392010'}</td>
+                        <td className="p-3 text-fiori-textDark font-medium">{order.workCenter || 'WC-ENG-02'}</td>
+                        <td className="p-3 text-fiori-textMuted font-medium">{order.orderDate || '2026-06-25'}</td>
+                        <td className="p-3">
+                          <span className={`font-bold ${typeStyles.text}`}>{order.type}</span>
+                        </td>
+                        <td className="p-3 font-semibold text-fiori-textDark">{order.qty || 10}</td>
+                        <td className="p-3">
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded-sm border uppercase font-bold ${getPriorityColor(order.priority)}`}>
+                            {order.priority}
+                          </span>
+                        </td>
+                        <td className="p-3 font-medium text-fiori-textDark">{order.status}</td>
+                        <td className="p-3 text-fiori-textMuted font-medium font-mono">{order.material}</td>
+                        <td className="p-3 text-fiori-textMuted font-medium">{order.due || '2026-07-01'}</td>
+                        <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <button 
+                            onClick={() => onDeleteOrder(order.id)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-full transition-colors"
+                            title="Delete Order"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Bottom Section: Sequencing Simulation Results */}
