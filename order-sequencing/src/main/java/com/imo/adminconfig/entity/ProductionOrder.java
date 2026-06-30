@@ -41,4 +41,13 @@ public class ProductionOrder {
 
     @Column(name = "PLANT", length = 20)
     private String plant;
+
+    @Column(name = "SALES_ORDER", length = 50)
+    private String salesOrder;
+
+    @Column(name = "WORK_CENTER", length = 50)
+    private String workCenter;
+
+    @Column(name = "ORDER_DATE", length = 50)
+    private String orderDate;
 }

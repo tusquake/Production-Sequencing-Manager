@@ -278,6 +278,9 @@ export default function OrdersTab({
                   />
                 </th>
                 <th className="p-3">Order ID</th>
+                <th className="p-3">Sales Order</th>
+                <th className="p-3">Work Center</th>
+                <th className="p-3">Order Date</th>
                 <th className="p-3">Order Type</th>
                 <th className="p-3">Quantity</th>
                 <th className="p-3">Priority</th>
@@ -290,7 +293,7 @@ export default function OrdersTab({
             <tbody>
               {filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="text-center p-8 text-fiori-textMuted font-medium">
+                  <td colSpan="12" className="text-center p-8 text-fiori-textMuted font-medium">
                     No production orders found in this workspace. Clear/re-import or create one.
                   </td>
                 </tr>
@@ -317,6 +320,9 @@ export default function OrdersTab({
                         />
                       </td>
                       <td className="p-3 font-bold text-fiori-textDark">{order.orderId}</td>
+                      <td className="p-3 font-semibold text-fiori-textDark">{order.salesOrder || 'SO-392010'}</td>
+                      <td className="p-3 text-fiori-textDark font-medium">{order.workCenter || 'WC-ENG-02'}</td>
+                      <td className="p-3 text-fiori-textMuted font-medium">{order.orderDate || '2026-06-25'}</td>
                       <td className="p-3">
                         <span className={`font-bold ${typeStyles.text}`}>{order.type}</span>
                       </td>

@@ -19,4 +19,7 @@ public class ProductionOrderDto {
     private String material;
     private String due;
     private String plant;
+    private String salesOrder;
+    private String workCenter;
+    private String orderDate;
 }
