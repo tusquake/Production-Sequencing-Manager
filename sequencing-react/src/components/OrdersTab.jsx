@@ -35,13 +35,15 @@ export default function OrdersTab({
   const [isSimulating, setIsSimulating] = useState(false);
 
   const toast = useToast();
-  // Prevents the selectedIds→draggedOrders sync hook from overwriting the simulation result
-  const simulationLock = useRef(false);
+  // Stays true from the moment simulation/validation runs until user clicks Reset
+  // or switches plant. Prevents the orders-sync effect from overwriting the result.
+  const hasSimulated = useRef(false);
 
-  // Sync state with parent orders list: preserve manual drag order but sync with checkmarks
-  // Skip the sync if a simulation just ran (simulationLock prevents overwriting its result)
+  // Sync selectedIds → draggedOrders ONLY when no simulation has been run yet.
+  // Once hasSimulated is true, the user's drag panel is owned by the simulation result
+  // and must not be overwritten by an orders refresh (e.g. from fetchData).
   useEffect(() => {
-    if (simulationLock.current) return;
+    if (hasSimulated.current) return;
     setDraggedOrders(prev => {
       const preserved = prev.filter(o => selectedIds.includes(o.orderId));
       const existingIds = new Set(preserved.map(o => o.orderId));
@@ -50,8 +52,9 @@ export default function OrdersTab({
     });
   }, [selectedIds, orders]);
 
-  // Reset selection and simulation states when plant changes
+  // Reset everything when plant switches
   useEffect(() => {
+    hasSimulated.current = false;
     setSelectedIds([]);
     setDraggedOrders([]);
     setOptimizedOrders([]);
@@ -108,12 +111,10 @@ export default function OrdersTab({
     try {
       const res = await onRunSimulation(selectedIds);
       if (res && res.sequencedOrders) {
-        // Lock the sync hook so it doesn't overwrite the simulation result
-        simulationLock.current = true;
+        // Lock permanently until user resets — survives any fetchData refresh
+        hasSimulated.current = true;
         setOptimizedOrders(res.sequencedOrders);
         setDraggedOrders(res.sequencedOrders);
-        // Release lock after React has flushed these state updates
-        setTimeout(() => { simulationLock.current = false; }, 100);
 
         const score = res.complianceVal !== undefined ? res.complianceVal : 100;
         const status = score === 100 ? 'SUCCESS' : score >= 50 ? 'WARNING' : 'FAILED';
@@ -151,6 +152,8 @@ export default function OrdersTab({
       if (res) {
         const score = res.complianceVal !== undefined ? res.complianceVal : 100;
         const status = score === 100 ? 'SUCCESS' : score >= 50 ? 'WARNING' : 'FAILED';
+        // Lock the panel so fetchData refresh can't wipe out the drag panel
+        hasSimulated.current = true;
         setValidationResult({
           status,
           score,
@@ -185,6 +188,7 @@ export default function OrdersTab({
   };
 
   const handleReset = () => {
+    hasSimulated.current = false; // unlock the sync effect
     setSelectedIds([]);
     setDraggedOrders([]);
     setOptimizedOrders([]);
