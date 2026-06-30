@@ -45,6 +45,14 @@ export default function OrdersTab({
     });
   }, [selectedIds, orders]);
 
+  // Reset selection and simulation states when plant changes
+  useEffect(() => {
+    setSelectedIds([]);
+    setDraggedOrders([]);
+    setOptimizedOrders([]);
+    setValidationResult(null);
+  }, [plant]);
+
   // Handle filter changes
   const filteredOrders = orders.filter(o => {
     const matchesSearch = o.orderId.toLowerCase().includes(search.toLowerCase());
