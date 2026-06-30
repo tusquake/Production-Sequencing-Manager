@@ -100,13 +100,13 @@ public class ProductionOrderServiceImpl implements ProductionOrderService {
     public List<ProductionOrderDto> getOrdersByPlant(String plant) {
         List<ProductionOrder> orders = productionOrderRepo.findByPlantNative(plant);
         if (orders.isEmpty()) {
-            // Self-seeding: automatically generate 30 default mock orders
+            // Self-seeding: automatically generate 50 default mock orders
             List<ProductionOrder> seededOrders = new ArrayList<>();
             String[] types = {"CBU", "KD", "TVL"};
             String[] priorities = {"High", "Medium", "Low"};
             String[] statuses = {"Pending", "In Progress", "Done"};
 
-            for (int i = 1; i <= 30; i++) {
+            for (int i = 1; i <= 50; i++) {
                 String type = types[(i - 1) % types.length];
                 String priority = priorities[(i - 1) % priorities.length];
                 String status = statuses[(i - 1) % statuses.length];
@@ -128,7 +128,7 @@ public class ProductionOrderServiceImpl implements ProductionOrderService {
 
             activityLogService.logActivity(
                     plant,
-                    "Self-seeded 30 default production orders for plant: " + plant,
+                    "Self-seeded 50 default production orders for plant: " + plant,
                     "Success",
                     "Success",
                     "System Initialization"

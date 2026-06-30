@@ -14,7 +14,7 @@ import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
-@Profile("local")
+@Profile({"local", "gcp"})
 public class LocalSecurityConfig {
 
     @Bean

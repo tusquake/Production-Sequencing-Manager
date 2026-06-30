@@ -15,7 +15,7 @@ import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
-@Profile("!local")
+@Profile("!local && !gcp")
 public class SecurityConfig {
 
     private final XsuaaServiceConfiguration xsuaaServiceConfiguration;
