@@ -19,22 +19,35 @@ export default function DashboardTab({ orders, rules, logs }) {
   const ratioRules = rules.filter(r => r.isActive && r.type === 'ratio').length;
   const restrictionRules = rules.filter(r => r.isActive && r.type === 'restriction').length;
 
-  // Calculate mock compliance percentage based on logs or defaults
-  const lastValidationLog = [...logs]
-    .reverse()
-    .find(log => log.actionType === 'VALIDATE' || log.actionType === 'SIMULATE');
+  // Pull compliance from the most-recent simulation or validation log
+  // Backend fields: logType, statusState, statusText
+  const lastComplianceLog = [...logs]
+    .sort((a, b) => {
+      const ta = a.timestamp ? (Array.isArray(a.timestamp) ? new Date(...[a.timestamp[0], a.timestamp[1]-1, ...a.timestamp.slice(2)]) : new Date(a.timestamp)) : 0;
+      const tb = b.timestamp ? (Array.isArray(b.timestamp) ? new Date(...[b.timestamp[0], b.timestamp[1]-1, ...b.timestamp.slice(2)]) : new Date(b.timestamp)) : 0;
+      return tb - ta;
+    })
+    .find(log => {
+      const t = (log.logType || '').toLowerCase();
+      return t.includes('sequenc') || t.includes('simulat') || t.includes('validat');
+    });
 
   let complianceScore = 100;
   let status = 'SUCCESS';
-  if (lastValidationLog) {
-    status = lastValidationLog.status || 'SUCCESS';
-    if (lastValidationLog.details && lastValidationLog.details.includes('%')) {
-      const match = lastValidationLog.details.match(/(\d+)%/);
-      if (match) complianceScore = parseInt(match[1]);
+  if (lastComplianceLog) {
+    // statusState: "Success" | "Warning" | "Error"
+    const rawState = (lastComplianceLog.statusState || '').toLowerCase();
+    status = rawState === 'success' ? 'SUCCESS' : rawState === 'warning' ? 'WARNING' : rawState === 'error' ? 'FAILED' : 'SUCCESS';
+    // statusText contains "Compliance: 85%" or similar
+    const text = lastComplianceLog.statusText || '';
+    const match = text.match(/(\d+)%/);
+    if (match) {
+      complianceScore = parseInt(match[1]);
     } else {
       complianceScore = status === 'SUCCESS' ? 100 : status === 'WARNING' ? 85 : 40;
     }
   }
+
 
   // Donut chart data
   const donutData = {

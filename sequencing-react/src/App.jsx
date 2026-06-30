@@ -8,7 +8,7 @@ import ActivityLogsTab from './components/ActivityLogsTab';
 import { useToast } from './components/Toast.jsx';
 import { 
   Sliders, Settings, ClipboardList, Activity, RefreshCw, 
-  Trash2, Edit, CheckSquare, ToggleLeft, ToggleRight, Radio, Plus 
+  Trash2, Edit, CheckSquare, ToggleLeft, ToggleRight, Workflow, Plus 
 } from 'lucide-react';
 
 export default function App() {
@@ -177,11 +177,11 @@ export default function App() {
       <header className="bg-fiori-primary text-white px-6 py-3.5 shadow-md flex items-center justify-between border-b border-fiori-primaryDark">
         <div className="flex items-center space-x-3">
           <div className="bg-white/10 p-1.5 rounded-md">
-            <Radio size={20} className="text-white animate-pulse" />
+            <Workflow size={20} className="text-white" />
           </div>
           <div>
-            <h1 className="text-base font-bold tracking-tight">Production Order Sequencing Manager</h1>
-            <p className="text-[10px] text-white/70">Enterprise Mixing & Scheduling Simulation</p>
+            <h1 className="text-base font-bold tracking-tight">Production Order Sequencing</h1>
+            <p className="text-[10px] text-white/70">Enterprise Mixing &amp; Scheduling Simulation</p>
           </div>
         </div>
 
@@ -286,9 +286,21 @@ export default function App() {
                 }}
                 onDeleteOrder={handleDeleteOrder}
                 onClearOrders={handleClearOrders}
-                onRunSimulation={(selected) => apiService.runSimulation(plant, selected).then(res => res.data.data)}
-                onSaveSequence={(ordered) => apiService.saveSequence(plant, ordered).then(res => res.data.data)}
-                onValidateSequence={(ordered) => apiService.validateSequence(plant, ordered).then(res => res.data.data)}
+                onRunSimulation={async (selected) => {
+                  const res = await apiService.runSimulation(plant, selected);
+                  fetchData(plant); // refresh logs so dashboard compliance updates
+                  return res.data.data;
+                }}
+                onSaveSequence={async (ordered) => {
+                  const res = await apiService.saveSequence(plant, ordered);
+                  fetchData(plant); // refresh logs so dashboard compliance updates
+                  return res.data.data;
+                }}
+                onValidateSequence={async (ordered) => {
+                  const res = await apiService.validateSequence(plant, ordered);
+                  fetchData(plant); // refresh logs so dashboard compliance updates
+                  return res.data.data;
+                }}
                 plant={plant}
               />
             )}
