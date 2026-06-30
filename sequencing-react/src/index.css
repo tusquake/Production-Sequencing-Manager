@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+/* Define custom Fiori theme color variables for Tailwind v4 */
+@theme {
+  --color-fiori-primary: #0A6ED1;
+  --color-fiori-primaryDark: #0854A1;
+  --color-fiori-orange: #E06B00;
+  --color-fiori-cyan: #00857A;
+  --color-fiori-success: #2B7D2B;
+  --color-fiori-warning: #E9730C;
+  --color-fiori-error: #BB0000;
+  --color-fiori-bgLight: #EFF3F6;
+  --color-fiori-textDark: #32363A;
+  --color-fiori-textMuted: #6A6D70;
+  --color-fiori-borderLight: #CAD8E2;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #EFF3F6; /* Fiori Shell Background */
+  color: #32363A;
+}
+
+/* Custom scrollbar for horizontal production flow */
+.custom-scrollbar::-webkit-scrollbar {
+  height: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #E5E9EC;
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #A4B2BC;
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #8998A3;
+}
