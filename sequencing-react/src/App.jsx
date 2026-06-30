@@ -5,12 +5,14 @@ import OrdersTab from './components/OrdersTab';
 import RuleDialog from './components/RuleDialog';
 import OrderDialog from './components/OrderDialog';
 import ActivityLogsTab from './components/ActivityLogsTab';
+import { useToast } from './components/Toast.jsx';
 import { 
   Sliders, Settings, ClipboardList, Activity, RefreshCw, 
   Trash2, Edit, CheckSquare, ToggleLeft, ToggleRight, Radio, Plus 
 } from 'lucide-react';
 
 export default function App() {
+  const toast = useToast();
   const [plant, setPlant] = useState('MFG-002');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(false);
@@ -67,12 +69,14 @@ export default function App() {
   };
 
   const handleDeleteRule = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this rule?")) return;
+    if (!window.confirm('Are you sure you want to delete this rule?')) return;
     try {
       await apiService.deleteRule(id);
+      toast('Rule deleted successfully.', 'success');
       fetchData(plant);
     } catch (err) {
-      console.error("Error deleting rule:", err);
+      console.error('Error deleting rule:', err);
+      toast('Failed to delete rule.', 'error');
     }
   };
 
@@ -134,7 +138,7 @@ export default function App() {
   };
 
   const handleDeleteOrder = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this production order?")) return;
+    if (!window.confirm('Are you sure you want to delete this production order?')) return;
     try {
       const isLocal = window.location.hostname === 'localhost';
       const url = isLocal 
@@ -143,14 +147,16 @@ export default function App() {
       const headers = isLocal ? { 'user-email': 'tushar.seth@incture.com', 'user-name': 'Tushar Seth' } : {};
       const axios = (await import('axios')).default;
       await axios.delete(url, { headers });
+      toast('Production order deleted.', 'success');
       fetchData(plant);
     } catch (err) {
-      console.error("Error deleting order:", err);
+      console.error('Error deleting order:', err);
+      toast('Failed to delete order.', 'error');
     }
   };
 
   const handleClearOrders = async (plantName) => {
-    if (!window.confirm("Are you sure you want to clear all production orders for this plant?")) return;
+    if (!window.confirm('Are you sure you want to clear all production orders for this plant?')) return;
     try {
       const isLocal = window.location.hostname === 'localhost';
       const url = isLocal 

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { useToast } from './Toast.jsx';
 import { 
   Play, CheckCircle, AlertCircle, Save, Plus, ArrowRight, Trash2,
   RefreshCw, Search, ShieldCheck, ShieldAlert, RotateCcw
@@ -33,12 +34,16 @@ export default function OrdersTab({
   const [isValidating, setIsValidating] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
 
+  const toast = useToast();
+  // Prevents the selectedIds→draggedOrders sync hook from overwriting the simulation result
+  const simulationLock = useRef(false);
+
   // Sync state with parent orders list: preserve manual drag order but sync with checkmarks
+  // Skip the sync if a simulation just ran (simulationLock prevents overwriting its result)
   useEffect(() => {
+    if (simulationLock.current) return;
     setDraggedOrders(prev => {
-      // Keep existing ones that are still selected
       const preserved = prev.filter(o => selectedIds.includes(o.orderId));
-      // Find new ones that are not in the list yet
       const existingIds = new Set(preserved.map(o => o.orderId));
       const newlyAdded = orders.filter(o => selectedIds.includes(o.orderId) && !existingIds.has(o.orderId));
       return [...preserved, ...newlyAdded];
@@ -95,7 +100,7 @@ export default function OrdersTab({
   // Run Simulation
   const handleSimulation = async () => {
     if (selectedIds.length === 0) {
-      alert('Please select at least one order to sequence.');
+      toast('Please select at least one order to sequence.', 'warning');
       return;
     }
     setIsSimulating(true);
@@ -103,9 +108,13 @@ export default function OrdersTab({
     try {
       const res = await onRunSimulation(selectedIds);
       if (res && res.sequencedOrders) {
+        // Lock the sync hook so it doesn't overwrite the simulation result
+        simulationLock.current = true;
         setOptimizedOrders(res.sequencedOrders);
-        setDraggedOrders(res.sequencedOrders); // Automatically load optimized to left panel
-        
+        setDraggedOrders(res.sequencedOrders);
+        // Release lock after React has flushed these state updates
+        setTimeout(() => { simulationLock.current = false; }, 100);
+
         const score = res.complianceVal !== undefined ? res.complianceVal : 100;
         const status = score === 100 ? 'SUCCESS' : score >= 50 ? 'WARNING' : 'FAILED';
         
@@ -116,9 +125,13 @@ export default function OrdersTab({
             ? res.validationResults.map(r => `${r.name}: ${r.detail} (${r.pass ? 'Passed' : r.warn ? 'Warning' : 'Failed'})`)
             : ['Sequencing mixed successfully based on rules.']
         });
+        toast(`Simulation complete — ${score}% compliance`, score === 100 ? 'success' : score >= 50 ? 'warning' : 'error');
+      } else {
+        toast('Simulation returned no sequenced orders.', 'warning');
       }
     } catch (err) {
       console.error(err);
+      toast('Simulation failed. Check console for details.', 'error');
     } finally {
       setIsSimulating(false);
     }
@@ -127,7 +140,7 @@ export default function OrdersTab({
   // Validate manual/current arrangement
   const handleValidation = async () => {
     if (draggedOrders.length === 0) {
-      alert('No orders selected for validation.');
+      toast('No orders in the sequencing panel to validate.', 'warning');
       return;
     }
     setIsValidating(true);
@@ -138,17 +151,18 @@ export default function OrdersTab({
       if (res) {
         const score = res.complianceVal !== undefined ? res.complianceVal : 100;
         const status = score === 100 ? 'SUCCESS' : score >= 50 ? 'WARNING' : 'FAILED';
-        
         setValidationResult({
-          status: status,
-          score: score,
+          status,
+          score,
           messages: res.validationResults 
             ? res.validationResults.map(r => `${r.name}: ${r.detail} (${r.pass ? 'Passed' : r.warn ? 'Warning' : 'Failed'})`)
             : []
         });
+        toast(`Validation complete — ${score}% compliance`, score === 100 ? 'success' : score >= 50 ? 'warning' : 'error');
       }
     } catch (err) {
       console.error(err);
+      toast('Validation failed. Check console for details.', 'error');
     } finally {
       setIsValidating(false);
     }
@@ -157,15 +171,16 @@ export default function OrdersTab({
   // Save manual/current arrangement
   const handleSave = async () => {
     if (draggedOrders.length === 0) {
-      alert('No sequence to save.');
+      toast('No sequence to save.', 'warning');
       return;
     }
     try {
       const ids = draggedOrders.map(o => o.orderId);
       await onSaveSequence(ids);
-      alert('Sequence arrangement saved successfully!');
+      toast('Sequence arrangement saved successfully!', 'success');
     } catch (err) {
       console.error(err);
+      toast('Failed to save sequence.', 'error');
     }
   };
 
