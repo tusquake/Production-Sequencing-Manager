@@ -10,7 +10,11 @@ const parseTimestamp = (ts) => {
   try {
     if (Array.isArray(ts)) {
       const [y, mo, d, h = 0, mi = 0, s = 0] = ts;
-      return new Date(y, mo - 1, d, h, mi, s);
+      return new Date(Date.UTC(y, mo - 1, d, h, mi, s));
+    }
+    if (typeof ts === 'string') {
+      const hasOffset = ts.endsWith('Z') || ts.includes('+') || (ts.includes('T') && ts.split('T')[1].includes('-'));
+      return new Date(hasOffset ? ts : ts + 'Z');
     }
     return new Date(ts);
   } catch {

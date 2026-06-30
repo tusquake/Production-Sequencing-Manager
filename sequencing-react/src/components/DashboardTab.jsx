@@ -5,6 +5,23 @@ import { CheckCircle } from 'lucide-react';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
+const parseTimestamp = (ts) => {
+  if (!ts) return 0;
+  try {
+    if (Array.isArray(ts)) {
+      const [y, mo, d, h = 0, mi = 0, s = 0] = ts;
+      return Date.UTC(y, mo - 1, d, h, mi, s);
+    }
+    if (typeof ts === 'string') {
+      const hasOffset = ts.endsWith('Z') || ts.includes('+') || (ts.includes('T') && ts.split('T')[1].includes('-'));
+      return new Date(hasOffset ? ts : ts + 'Z').getTime();
+    }
+    return new Date(ts).getTime();
+  } catch {
+    return 0;
+  }
+};
+
 export default function DashboardTab({ orders, rules, logs }) {
   const totalOrders = orders.length;
   const cbuCount = orders.filter(o => o.type === 'CBU').length;
@@ -22,11 +39,7 @@ export default function DashboardTab({ orders, rules, logs }) {
   // Pull compliance from the most-recent simulation or validation log
   // Backend fields: logType, statusState, statusText
   const lastComplianceLog = [...logs]
-    .sort((a, b) => {
-      const ta = a.timestamp ? (Array.isArray(a.timestamp) ? new Date(...[a.timestamp[0], a.timestamp[1]-1, ...a.timestamp.slice(2)]) : new Date(a.timestamp)) : 0;
-      const tb = b.timestamp ? (Array.isArray(b.timestamp) ? new Date(...[b.timestamp[0], b.timestamp[1]-1, ...b.timestamp.slice(2)]) : new Date(b.timestamp)) : 0;
-      return tb - ta;
-    })
+    .sort((a, b) => parseTimestamp(b.timestamp) - parseTimestamp(a.timestamp))
     .find(log => {
       const t = (log.logType || '').toLowerCase();
       return t.includes('simulat') || t.includes('validat');
