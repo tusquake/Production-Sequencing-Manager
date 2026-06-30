@@ -29,7 +29,7 @@ export default function DashboardTab({ orders, rules, logs }) {
     })
     .find(log => {
       const t = (log.logType || '').toLowerCase();
-      return t.includes('sequenc') || t.includes('simulat') || t.includes('validat');
+      return t.includes('simulat') || t.includes('validat');
     });
 
   let complianceScore = 100;
