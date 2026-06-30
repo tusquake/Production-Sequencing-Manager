@@ -3,7 +3,7 @@ import axios from 'axios';
 const isLocal = window.location.hostname === 'localhost';
 const baseURL = isLocal 
   ? 'http://localhost:8000/order-sequencing' 
-  : '/api';
+  : '/order-sequencing';
 
 const api = axios.create({
   baseURL
