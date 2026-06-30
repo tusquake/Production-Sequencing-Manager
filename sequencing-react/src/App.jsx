@@ -114,7 +114,7 @@ export default function App() {
       const isLocal = window.location.hostname === 'localhost';
       const url = isLocal 
         ? `http://localhost:8000/order-sequencing/production-order/create` 
-        : `/api/production-order/create`;
+        : `/order-sequencing/production-order/create`;
       
       const headers = isLocal ? { 'user-email': 'tushar.seth@incture.com', 'user-name': 'Tushar Seth' } : {};
       const axiosConfig = { headers };
@@ -139,7 +139,7 @@ export default function App() {
       const isLocal = window.location.hostname === 'localhost';
       const url = isLocal 
         ? `http://localhost:8000/order-sequencing/production-order/delete/${id}` 
-        : `/api/production-order/delete/${id}`;
+        : `/order-sequencing/production-order/delete/${id}`;
       const headers = isLocal ? { 'user-email': 'tushar.seth@incture.com', 'user-name': 'Tushar Seth' } : {};
       const axios = (await import('axios')).default;
       await axios.delete(url, { headers });
@@ -155,7 +155,7 @@ export default function App() {
       const isLocal = window.location.hostname === 'localhost';
       const url = isLocal 
         ? `http://localhost:8000/order-sequencing/production-order/clear/${plantName}` 
-        : `/api/production-order/clear/${plantName}`;
+        : `/order-sequencing/production-order/clear/${plantName}`;
       const headers = isLocal ? { 'user-email': 'tushar.seth@incture.com', 'user-name': 'Tushar Seth' } : {};
       const axios = (await import('axios')).default;
       await axios.delete(url, { headers });
