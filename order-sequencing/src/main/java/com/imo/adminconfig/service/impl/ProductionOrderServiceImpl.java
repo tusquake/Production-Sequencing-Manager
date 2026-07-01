@@ -42,7 +42,6 @@ public class ProductionOrderServiceImpl implements ProductionOrderService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "productionOrders", allEntries = true)
     public ProductionOrderDto saveOrder(ProductionOrderDto orderDto) {
         ProductionOrder order = modelMapper.map(orderDto, ProductionOrder.class);
         
@@ -75,7 +74,6 @@ public class ProductionOrderServiceImpl implements ProductionOrderService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "productionOrders", allEntries = true)
     public List<ProductionOrderDto> bulkSave(List<ProductionOrderDto> orderDtos) {
         List<ProductionOrderDto> savedDtos = new ArrayList<>();
         for (ProductionOrderDto dto : orderDtos) {
@@ -96,7 +94,6 @@ public class ProductionOrderServiceImpl implements ProductionOrderService {
 
     @Override
     @Transactional
-    @Cacheable(value = "productionOrders", key = "#plant")
     public List<ProductionOrderDto> getOrdersByPlant(String plant) {
         List<ProductionOrder> orders = productionOrderRepo.findByPlantNative(plant);
         return orders.stream()
@@ -106,7 +103,6 @@ public class ProductionOrderServiceImpl implements ProductionOrderService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "productionOrders", allEntries = true)
     public void deleteOrder(Long id) {
         ProductionOrder order = productionOrderRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Production order not found with ID: " + id));
@@ -123,7 +119,6 @@ public class ProductionOrderServiceImpl implements ProductionOrderService {
 
     @Override
     @Transactional
-    @CacheEvict(value = "productionOrders", allEntries = true)
     public void clearOrdersByPlant(String plant) {
         productionOrderRepo.deleteByPlant(plant);
         activityLogService.logActivity(

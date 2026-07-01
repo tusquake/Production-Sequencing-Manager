@@ -13,7 +13,7 @@ import {
 
 export default function App() {
   const toast = useToast();
-  const [plant, setPlant] = useState('MFG-002');
+  const [plant, setPlant] = useState('MFG-003');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(false);
 
@@ -194,8 +194,8 @@ export default function App() {
               value={plant}
               onChange={(e) => setPlant(e.target.value)}
             >
-              <option value="MFG-002">MFG-002 (Engine Plant)</option>
               <option value="MFG-003">MFG-003 (Specialist Line)</option>
+              <option value="MFG-004">MFG-004 (Assembly Plant)</option>
             </select>
           </div>
 

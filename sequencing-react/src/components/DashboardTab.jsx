@@ -1,9 +1,28 @@
 import React from 'react';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
-import { Doughnut } from 'react-chartjs-2';
+import { 
+  Chart as ChartJS, 
+  ArcElement, 
+  LineElement, 
+  PointElement, 
+  LinearScale, 
+  CategoryScale, 
+  Tooltip, 
+  Legend,
+  Filler
+} from 'chart.js';
+import { Doughnut, Line } from 'react-chartjs-2';
 import { CheckCircle } from 'lucide-react';
 
-ChartJS.register(ArcElement, Tooltip, Legend);
+ChartJS.register(
+  ArcElement, 
+  LineElement, 
+  PointElement, 
+  LinearScale, 
+  CategoryScale, 
+  Tooltip, 
+  Legend,
+  Filler
+);
 
 const parseTimestamp = (ts) => {
   if (!ts) return 0;
@@ -92,6 +111,113 @@ export default function DashboardTab({ orders, rules, logs }) {
       },
     },
     cutout: '70%',
+  };
+
+  // Compliance history from logs
+  const complianceLogs = logs
+    .filter(log => {
+      const t = (log.logType || '').toLowerCase();
+      return t.includes('simulat') || t.includes('validat');
+    })
+    .map(log => {
+      const text = log.statusText || '';
+      const match = text.match(/(\d+)%/);
+      let score = 100;
+      if (match) {
+        score = parseInt(match[1]);
+      } else {
+        const rawState = (log.statusState || '').toLowerCase();
+        const status = rawState === 'success' ? 'SUCCESS' : rawState === 'warning' ? 'WARNING' : rawState === 'error' ? 'FAILED' : 'SUCCESS';
+        score = status === 'SUCCESS' ? 100 : status === 'WARNING' ? 85 : 40;
+      }
+      return {
+        timestamp: parseTimestamp(log.timestamp),
+        score
+      };
+    })
+    .filter(item => item.timestamp > 0)
+    .sort((a, b) => a.timestamp - b.timestamp);
+
+  let chartDataPoints = [];
+  if (complianceLogs.length > 0) {
+    const formatLabel = (ms) => {
+      const d = new Date(ms);
+      return d.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    };
+    chartDataPoints = complianceLogs.map(log => ({
+      label: formatLabel(log.timestamp),
+      score: log.score
+    }));
+  } else {
+    // Generate mock compliance trend data
+    const now = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const label = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      const mockScores = [75, 80, 67, 85, 90, 80, 100];
+      chartDataPoints.push({
+        label,
+        score: mockScores[6 - i]
+      });
+    }
+  }
+
+  const lineData = {
+    labels: chartDataPoints.map(p => p.label),
+    datasets: [
+      {
+        label: 'Compliance Score (%)',
+        data: chartDataPoints.map(p => p.score),
+        fill: true,
+        backgroundColor: 'rgba(10, 110, 209, 0.1)',
+        borderColor: '#0A6ED1',
+        borderWidth: 2.5,
+        pointBackgroundColor: '#0A6ED1',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        tension: 0.35,
+      },
+    ],
+  };
+
+  const lineOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) => `Compliance: ${context.parsed.y}%`,
+        },
+      },
+    },
+    scales: {
+      y: {
+        min: 0,
+        max: 100,
+        ticks: {
+          stepSize: 20,
+          color: '#555A5F',
+          font: { size: 10 },
+        },
+        grid: {
+          color: '#E5E7EB',
+        },
+      },
+      x: {
+        ticks: {
+          color: '#555A5F',
+          font: { size: 10 },
+        },
+        grid: {
+          display: false,
+        },
+      },
+    },
   };
 
   return (
@@ -255,6 +381,21 @@ export default function DashboardTab({ orders, rules, logs }) {
               </span>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Compliance History Line Chart */}
+      <div className="bg-white rounded-lg shadow-sm border border-fiori-borderLight p-5 flex flex-col h-[300px]">
+        <h4 className="text-sm font-bold text-fiori-textDark border-b border-fiori-borderLight pb-2 mb-4 flex justify-between items-center">
+          <span>Compliance &amp; Simulation Trend</span>
+          {complianceLogs.length === 0 && (
+            <span className="text-[9px] bg-blue-50 text-fiori-primary px-2 py-0.5 rounded border border-blue-200 uppercase font-semibold">
+              Demo History
+            </span>
+          )}
+        </h4>
+        <div className="flex-1 relative">
+          <Line data={lineData} options={lineOptions} />
         </div>
       </div>
     </div>
