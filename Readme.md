@@ -1,210 +1,227 @@
 # Production Order Sequencing Manager
-### SAP Fiori UI Prototype
+### Enterprise Full-Stack Scheduling & Mixing Simulation (SAP BTP Integration ready)
+
+**Deployed Application URL:** [https://sequencing-service-772438354247.us-central1.run.app/](https://sequencing-service-772438354247.us-central1.run.app/)
 
 ---
 
 ## Overview
 
-This is a frontend-only UI prototype for a configurable production order sequencing tool built for SAP BTP. It allows production planners to import orders, define mixing rules, simulate sequencing, and visualise the resulting production line flow — all without any backend or database.
+The **Production Order Sequencing Manager** is a full-stack, enterprise-grade production scheduling and mixing simulation application. It enables production planners to manage production orders, define custom mixing rules, simulate optimal sequencing, manually validate arrangements, and persist sequences to a database. 
 
-The core business problem it solves: given a list of production orders of different types (CBU, KD, TVL), apply configurable mixing rules to determine the optimal sequence on the shop floor.
+It is designed to solve a critical shop floor scheduling problem: **how to sequence different types of production orders (CBU, KD, TVL) to maximize compliance with technical mixing rules and priority constraints.**
 
----
-
-## Application Flow
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         USER JOURNEY                            │
-│                                                                 │
-│   1. Dashboard       →   2. Production Orders                   │
-│   (Overview KPIs)        (View & filter orders)                 │
-│                                    │                            │
-│                                    ▼                            │
-│   4. Simulation      ←   3. Sequencing Rules                    │
-│   (Run & visualise)      (Configure mixing rules)               │
-└─────────────────────────────────────────────────────────────────┘
-```
+Previously a static prototype, the application has been fully realized as a multi-tier enterprise application consisting of a **Spring Boot REST API** backend and a **React 19 (Vite + Tailwind CSS)** frontend.
 
 ---
 
-## Page-by-Page Flow
-
-### 1. Dashboard
-**Entry point of the application.**
-
-- Displays KPI cards showing the count of total orders broken down by type: CBU, KD, and TVL, plus the number of active rules.
-- An order type distribution donut chart gives a quick visual of the composition of the order pool.
-- A sequencing compliance bar chart shows how well the last simulation respected the configured rules.
-- Recent activity log shows the latest simulation runs, rule changes, and order imports.
-
-**Purpose:** Gives the planner a quick health check before acting.
-
----
-
-### 2. Production Orders
-**Where the planner reviews the raw order list.**
-
-- Displays all 30 mock production orders in a sortable, filterable table.
-- Each order has: Order ID, Order Type (CBU / KD / TVL), Quantity, Priority (High / Medium / Low), Status (Pending / In Progress / Done), Material, and Due Date.
-- The planner can search by Order ID, filter by type, priority, or status, and sort by any column.
-- The **"Run Sequencing"** button at the top right triggers a simulation run and navigates directly to the Simulation page with results pre-loaded.
-
-**Purpose:** Lets the planner inspect and understand the raw input before sequencing.
-
----
-
-### 3. Sequencing Rules
-**Where the planner configures how orders should be mixed.**
-
-This is the configuration heart of the application. Rules are displayed as cards and can be toggled on/off, edited, or deleted.
-
-#### Rule Types
-
-**Ratio Rule**
-Defines a mixing ratio between two order types. The most important rule in this domain.
-
-Example: *For every 3 CBU orders, insert 1 KD order.*
-
-This means the sequencer will group 3 CBU orders together, then insert 1 KD order, then repeat. The rule card shows a visual preview:
+## System Architecture
 
 ```
-[CBU] [CBU] [CBU]  →  [KD]
-```
-
-**Restriction Rule**
-Prevents a specific order type from following another.
-
-Example: *TVL cannot directly follow KD.*
-
-This means after a KD order, the next slot must be a CBU (or another non-TVL type). The sequencer will hold TVL orders back until a safe position is found.
-
-**Priority Rule**
-Within a type group, orders are sorted by priority (High → Medium → Low) before being placed in the sequence.
-
-#### Creating a New Rule
-Clicking **"+ Create Rule"** opens a modal. The form dynamically shows different fields depending on the selected rule type. For a Ratio Rule, a live preview chip bar updates as you type to show what the resulting group pattern will look like.
-
----
-
-### 4. Simulation
-**Where the sequencing is computed and visualised.**
-
-This is the most important page. It is split into four sections:
-
-#### Left Panel — Original Order List
-Shows the raw orders as imported, in their original, unsequenced order. This is the "before" state.
-
-#### Right Panel — Optimised Sequence
-Shows the result of running the sequencing algorithm against the active rules. Orders are rearranged into groups following the configured ratio. This is the "after" state.
-
-Example output for a 3:1 CBU-KD ratio rule:
-```
-[CBU] [CBU] [CBU] [KD]
-[CBU] [CBU] [CBU] [KD]
-[CBU] [TVL]
-```
-
-#### Production Line Flow
-A horizontal, colour-coded flow strip that visualises the full sequence end-to-end, mimicking a physical production line view:
-
-```
-[CBU] → [CBU] → [CBU] → [KD] → [CBU] → [CBU] → [CBU] → [KD] → [TVL]
-```
-
-Colour coding:
-- 🔵 **CBU** — Blue
-- 🟠 **KD** — Orange
-- 🩵 **TVL** — Cyan
-
-#### Rule Validation Panel
-After the simulation, each active rule is evaluated against the generated sequence and a pass / fail / warning result is shown:
-
-```
-✅ CBU-KD Ratio Rule Passed       — All groups follow 3:1 ratio correctly
-✅ TVL Restriction Rule Passed    — No TVL order follows a KD order
-❌ High Priority First Violated   — 2 priority inversions detected within type groups
+                       ┌──────────────────────────────────────┐
+                       │            React Frontend            │
+                       │          (sequencing-react)          │
+                       └──────────────────┬───────────────────┘
+                                          │ Axios HTTP & Headers
+                                          ▼ (user-email / user-name)
+                       ┌──────────────────────────────────────┐
+                       │          Spring Boot Backend         │
+                       │           (order-sequencing)         │
+                       └────┬────────────────────────────┬────┘
+                            │                            │
+                            ▼ Spring Cache (Caffeine)    ▼ Spring Data JPA
+                       ┌───────────┐                ┌────┴────┐
+                       │ Local JVM │                │   H2    │ / SAP HANA
+                       │   Cache   │                │   DB    │ / Cloud SQL
+                       └───────────┘                └─────────┘
 ```
 
 ---
 
-### 5. Settings
-**Application and simulation configuration.**
+## Sub-Project Structure
 
-- Plant ID and name
-- Active production shift
-- Toggle: auto-run simulation on order import
-- Toggle: show violations only in validation panel
-- Maximum sequence length
-- Email alert notifications on rule violation
+The workspace is divided into two primary sub-projects:
+
+1. **`order-sequencing` (Backend Service)**:
+   - A Spring Boot Java 17 service managing data models, REST endpoints, caching, database persistence, and the core sequencing/validation engines.
+2. **`sequencing-react` (Frontend Application)**:
+   - A modern React web dashboard built with Vite, Tailwind CSS v4, Lucide Icons, and Chart.js, displaying live KPIs, sequencing flows, rule configurations, and paginated logs.
 
 ---
 
-## Sequencing Algorithm (Mock Logic)
+## Technology Stack
 
-The simulation uses the following logic when "Run Simulation" is clicked:
+### Backend (`order-sequencing`)
+* **Framework**: Spring Boot 3.5.8 (Java 17, Maven)
+* **Database**: In-Memory H2 (default local), with support for **SAP HANA** (via `ngdbc`) and **Google Cloud SQL PostgreSQL**
+* **Database Connection Pool**: HikariCP (optimized configurations)
+* **Caching**: Spring Cache with Caffeine (JVM local memory caching)
+* **Security**: Spring Security with **SAP BTP XSUAA** resource server authentication support
+* **Documentation**: OpenAPI 3 with Swagger UI (`/swagger-ui.html`)
+* **Utilities**: ModelMapper, Lombok, JSON-Java
 
+### Frontend (`sequencing-react`)
+* **Framework & Tooling**: React 19 + Vite 8.x + Tailwind CSS v4
+* **State & Networking**: Axios with custom interceptors for simulated user contexts
+* **Visualization & Icons**: Chart.js (`react-chartjs-2`), Lucide React
+* **Layout**: SAP Fiori-inspired custom CSS themes, with full responsive support
+
+---
+
+## Core Features & Functionality
+
+### 1. Dynamic Overview Dashboard
+* **Enterprise KPIs**: 5 status cards showing live counts of **Total Orders**, **CBU Orders** (with percentage breakdown), **KD Orders**, **TVL Orders**, and **Active Rules**.
+* **Order Type Distribution**: A clean Doughnut Chart displaying the proportions of order categories with a live center total.
+* **Sequencing Compliance Meter**: Visually registers compliance percentages for CBU, KD, TVL, and overall lines based on the last simulation.
+* **Simulation Trend Line**: A line graph mapping historical compliance scores over time, derived directly from database logs.
+
+### 2. Advanced Production Order Management
+* **Interactive Table**: Search orders by Order ID, filter by type (CBU / KD / TVL), priority (High / Medium / Low), or status, and sort by column.
+* **Side-by-Side Simulation View**: Inspect the **Original Sequence** (Input before state) and **Optimized Sequence** (Output simulated state) side-by-side.
+* **Production Line Visualizer**: A horizontal, color-coded, smooth-scrolling flow strip showcasing the physical sequencing layout on the shop floor. Contains manual collapse controls and auto-collapses lists on simulation trigger.
+* **Interactive Actions**: Supports creating new production orders, deleting orders, clearing all orders per plant, running simulations, validating manual order modifications, and saving final sequence configurations back to the database.
+
+### 3. Configurable Mixing Rules Engine
+Allows planners to manage and toggle active business rules in real time. Rules are categorized into three core types:
+* **Ratio Rule**: Mixes source and target orders (e.g., *Insert 1 KD order for every 3 CBU orders*).
+* **Restriction Rule**: Prevents specific sequences (e.g., *TVL cannot follow KD*).
+* **Priority Rule**: Sorts matching order groups in priority order (High → Medium → Low).
+
+### 4. Paginated Activity & Audit Logs
+* Captures all user operations including simulation executions, manual validation runs, rule violations, and order modifications.
+* Displays detailed rule-specific error logs (e.g., specific ratio or restriction failure descriptions).
+* Configured with **newest-first sorting** and native server-side pagination for optimal performance.
+
+---
+
+## Key Enterprise Implementations & Enhancements
+
+### High-Performance Database Caching
+Caffeine caching is configured on the service layer. Retrieves are cached to avoid database queries:
+* `@Cacheable(value = "productionOrders")` caches orders list for the active plant.
+* `@CacheEvict(value = "productionOrders", allEntries = true)` invalidates caches on save, update, delete, or order clear events.
+
+### Timezone & Clock Alignment
+Timestamps are synchronized between the backend database and the user UI:
+* Raw database timestamps are parsed specifically as **UTC** on the client side (`Date.UTC` mapping) to resolve localized time discrepancies (such as the +5:30 hour IST offset differences on the client dashboard).
+
+### Race Condition & UI Lock Prevention
+* Replaced temporary timer locks with permanent simulation tracking references (`hasSimulated` ref) inside React hooks.
+* Prevents data fetch race conditions and guarantees that dashboard metrics reflect verified database logs.
+
+### Optimized Connection Pooling (HikariCP)
+Database connection management is fine-tuned for high concurrency in local and cloud profiles:
+```properties
+spring.datasource.hikari.maximum-pool-size=20
+spring.datasource.hikari.minimum-idle=0
+spring.datasource.hikari.idle-timeout=10000
+spring.datasource.hikari.max-lifetime=1800000
 ```
-1. Separate orders into three buckets: CBU[], KD[], TVL[]
 
-2. Read the active Ratio Rule (default: 3 CBU per 1 KD)
+---
 
-3. Loop:
-   a. Take [ratio] CBU orders from the CBU bucket → append to sequence
-   b. Take 1 KD order from the KD bucket → append to sequence
-   c. Check Restriction Rule: if last order is NOT KD, take 1 TVL → append
-   d. Repeat until all buckets are empty
+## REST API Documentation
 
-4. Append any remaining TVL orders at the end (after CBU, not KD)
+Interactive OpenAPI documentation can be accessed at:
+* **Local Swagger UI**: [http://localhost:8000/swagger-ui.html](http://localhost:8000/swagger-ui.html)
+* **Deployed Swagger UI**: [https://sequencing-service-772438354247.us-central1.run.app/swagger-ui.html](https://sequencing-service-772438354247.us-central1.run.app/swagger-ui.html)
+
+### Core API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET`  | `/order-sequencing/production-order/by-plant/{plant}` | Retrieve cached list of orders for a plant. |
+| `POST` | `/order-sequencing/production-order/create` | Save or update a single production order. |
+| `POST` | `/order-sequencing/production-order/bulk` | Bulk save multiple production orders. |
+| `POST` | `/order-sequencing/production-order/sequence/{plant}` | Execute rule simulation on the selected orders. |
+| `POST` | `/order-sequencing/production-order/validate-sequence/{plant}` | Validate custom sequence arrangement against rules. |
+| `POST` | `/order-sequencing/production-order/save-sequence/{plant}` | Log and save the finalized production sequence. |
+| `GET`  | `/order-sequencing/sequencing-rule/by-plant/{plant}` | Fetch scheduling rules configured for a plant. |
+| `POST` | `/order-sequencing/sequencing-rule/create` | Create a new scheduling rule. |
+| `PUT`  | `/order-sequencing/sequencing-rule/update` | Update a scheduling rule configuration. |
+| `GET`  | `/order-sequencing/activity-log/by-plant/{plant}` | Retrieve paginated activity and violation logs. |
+
+---
+
+## How to Build & Run Locally
+
+### 1. Prerequisites
+* **Java Development Kit (JDK)** version 17
+* **Maven** 3.x
+* **Node.js** version 18+
+
+---
+
+### 2. Running the Spring Boot Backend
+Navigate into the `order-sequencing` directory and start the service:
+
+```bash
+cd order-sequencing
+# Build the project
+mvn clean install
+
+# Run the Spring Boot application (Default port: 8000)
+mvn spring-boot:run
 ```
 
-This directly implements the business rule from the specification:
-> *For every 3 CBU orders there needs to be 1 KD order. TVL orders should not occur after KD orders but they can occur after CBU orders.*
+By default, this launches the service using the `local` Spring Profile (with an In-Memory H2 database).
 
 ---
 
-## Colour Legend
+### 3. Running the React Frontend
+Navigate into the `sequencing-react` directory and launch the dev server:
 
-| Order Type | Colour  | Hex       |
-|------------|---------|-----------|
-| CBU        | Blue    | `#1b6ec2` |
-| KD         | Orange  | `#e07b00` |
-| TVL        | Cyan    | `#0891b2` |
+```bash
+cd sequencing-react
+# Install dependencies
+npm install
 
----
+# Start Vite Development Server
+npm run dev
+```
 
-## Mock Data
-
-- **30 production orders** (PO1001–PO1030) across 3 types
-- 18 CBU orders (60%), 8 KD orders (27%), 4 TVL orders (13%)
-- Priorities: High, Medium, Low
-- Statuses: Pending, In Progress, Done
-- **3 pre-configured rules**: CBU-KD Mixing Rule, TVL Restriction Rule, High Priority First
+Vite will start the application locally. When running in a local environment (`localhost`), the Axios API layer automatically targets `http://localhost:8000/order-sequencing` and applies headers identifying `tushar.seth@incture.com` as the active session user.
 
 ---
 
-## Technology
+## GCP Deployment Steps
 
-| Layer       | Technology                        |
-|-------------|-----------------------------------|
-| UI          | Vanilla HTML5 + CSS3 + JavaScript |
-| Styling     | Custom SAP Fiori-inspired CSS     |
-| Data        | Inline mock JSON (no backend)     |
-| Charts      | Pure SVG                          |
-| Framework   | None (zero dependencies)          |
+The application is designed to be deployed as a single unified container on **Google Cloud Run**, where the built React static files are served directly by the Spring Boot backend service.
 
-> This prototype is intended to be opened directly in a browser as a single `index.html` file. No build step, no server, no dependencies.
+### 1. Build the React Frontend
+First, compile the frontend assets. The Vite build output is configured in `vite.config.js` to compile directly into the Spring Boot backend's static resources directory (`order-sequencing/src/main/resources/static`):
+
+```bash
+cd sequencing-react
+npm install
+npm run build
+```
+
+### 2. Build the Backend & Container Image
+Navigate to the `order-sequencing` directory which contains the `Dockerfile` for the Spring Boot application. Build and push the container image to **Google Artifact Registry** or **Container Registry** using Google Cloud Build:
+
+```bash
+cd ../order-sequencing
+gcloud builds submit --tag gcr.io/galvanic-axle-474007-a2/sequencing-service:latest
+```
+
+### 3. Deploy to Google Cloud Run
+Deploy the built container image to Google Cloud Run. Ensure that the active profile is set to `gcp` to use the Cloud SQL PostgreSQL instance configured in `application-gcp.properties`:
+
+```bash
+gcloud run deploy sequencing-service \
+  --image gcr.io/galvanic-axle-474007-a2/sequencing-service:latest \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars="spring.profiles.active=gcp,DB_PASSWORD=your_database_password"
+```
+
+The database configuration automatically integrates with **Google Cloud SQL PostgreSQL** via the `spring-cloud-gcp-starter-sql-postgresql` dependency using:
+* **Database Instance Connection**: `galvanic-axle-474007-a2:us-central1:sequencing-db-instance`
+* **Database Name**: `sequencingdb`
 
 ---
 
-## Intended Next Steps (Production Build)
-
-1. **Connect to SAP S/4HANA** — Replace mock data with live production order data via OData/BTP APIs
-2. **Persist rules** — Store sequencing rules in SAP BTP PostgreSQL or HANA Cloud
-3. **Authentication** — Integrate SAP BTP XSUAA for role-based access (Planner / Viewer)
-4. **Export** — Allow the planner to export the optimised sequence back to SAP PP as a planned order update
-5. **React + UI5 Web Components** — Migrate to `@ui5/webcomponents-react` for full SAP Fiori compliance
-
----
-
-*Prototype version 1.0.0 — Plant MFG-001, Hamburg*
+*Version 2.0.0 — Full Stack Release — Connected to Plant MFG-003 / MFG-004*
